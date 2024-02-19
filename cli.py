@@ -69,9 +69,13 @@ def main():
         else:
             print('Login failed')
     elif args.command == "create":
-        token = input("Enter access token: ")
-        items = input("Enter shopping items (comma separated): ").split(",")
-        print(create_shopping_list(token, items))
+        access_token = asyncio.run(login())
+        if access_token:
+            items = input("Enter shopping items (comma separated): ").split(",")
+            shopping_list = {"items": [{"name": item.strip()} for item in items]}
+            print(create_shopping_list(access_token, shopping_list))
+        else:
+            print("Login failed. Cannot create shopping list.")
     elif args.command == "list":
         token = input("Enter access token: ")
         print(get_shopping_lists(token))
