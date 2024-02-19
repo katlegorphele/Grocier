@@ -1,57 +1,89 @@
 # cli.py
 
 import argparse
+import requests
 import asyncio
 from getpass import getpass
-from userreg import register_user, login_user, create_shopping_list, get_shopping_lists, update_shopping_list, delete_shopping_list, Token, User
+from userreg import User, login_user
 
-async def register():
-    print("Registering a new user...")
-    username = input("Enter username: ")
-    password = getpass("Enter password: ")
-    
-    # Create a User object to match the expected input of the FastAPI register function
-    user = User(username=username, password=password)
-    
-    # Call the FastAPI register function
-    response_model = await register_user(user)
-    
-    if response_model:
-        print("User registered successfully.")
-    else:
-        print("Registration failed.")
+BASE_URL = "http://localhost:8000"
 
-def login():
+def register(username, password):
+    url = f"{BASE_URL}/register/"
+    data = {"username": username, "password": password}
+    response = requests.post(url, json=data)
+    return response.json()
+
+async def login() -> str:
     print("Logging in...")
     username = input("Enter username: ")
     password = getpass("Enter password: ")
     
-    # Create a User object to match the expected input of the FastAPI login function
-    user = {"username": username, "password": password}
-    
     # Call the FastAPI login function
-    response_model = login_user(user)
+    response_model = await login_user(User(username=username, password=password))
     
     if response_model:
-        print("Login successful.")
-        # Extract access_token from the response model
-        access_token = response_model["access_token"]
-        return access_token
+        return response_model["access_token"]
     else:
-        print("Login failed.")
+        return ""
+
+
+def create_shopping_list(token, items):
+    url = f"{BASE_URL}/shopping_list/"
+    headers = {"Authorization": f"Bearer {token}"}
+    data = {"items": items}
+    response = requests.post(url, json=data, headers=headers)
+    return response.json()
+
+def get_shopping_lists(token):
+    url = f"{BASE_URL}/shopping_list/"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    return response.json()
+
+def update_shopping_list(token, shopping_list_id, updated_list):
+    url = f"{BASE_URL}/shopping_list/{shopping_list_id}/"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.put(url, json=updated_list, headers=headers)
+    return response.json()
+
+def delete_shopping_list(token, shopping_list_id):
+    url = f"{BASE_URL}/shopping_list/{shopping_list_id}/"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.delete(url, headers=headers)
+    return response.json()
 
 def main():
-    parser = argparse.ArgumentParser(description="CLI Program for User Authentication and Shopping List Management")
-    parser.add_argument("--register", action="store_true", help="Register a new user")
+    parser = argparse.ArgumentParser(description="CLI Interface for FastAPI Shopping List Application")
+    parser.add_argument("command", choices=["register", "login", "create", "list", "update", "delete"], help="Command to execute")
     args = parser.parse_args()
 
-    if args.register:
-        register()
-    else:
-        access_token = login()
+    if args.command == "register":
+        username = input("Enter username: ")
+        password = getpass("Enter password: ")
+        print(register(username, password))
+    elif args.command == "login":
+        access_token = asyncio.run(login())
         if access_token:
-            # Add logic for managing shopping lists here
-            pass
+            print('Login successful')
+        else:
+            print('Login failed')
+    elif args.command == "create":
+        token = input("Enter access token: ")
+        items = input("Enter shopping items (comma separated): ").split(",")
+        print(create_shopping_list(token, items))
+    elif args.command == "list":
+        token = input("Enter access token: ")
+        print(get_shopping_lists(token))
+    elif args.command == "update":
+        token = input("Enter access token: ")
+        shopping_list_id = input("Enter shopping list ID: ")
+        updated_list = input("Enter updated shopping list: ")
+        print(update_shopping_list(token, shopping_list_id, updated_list))
+    elif args.command == "delete":
+        token = input("Enter access token: ")
+        shopping_list_id = input("Enter shopping list ID: ")
+        print(delete_shopping_list(token, shopping_list_id))
 
 if __name__ == "__main__":
     main()
