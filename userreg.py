@@ -4,7 +4,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
-from typing import List
+from typing import List, Dict
 
 app = FastAPI()
 
@@ -23,6 +23,7 @@ db = client["mydatabase"]
 users_collection = db["users"]
 shoppingLIst_collection = db['shopping_lists']
 
+
 # Pydantic models for user input and token response
 class User(BaseModel):
     username: str
@@ -32,13 +33,11 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-class ShoppingItem(BaseModel):
-    name: str
-    quantity: int
+class UserShoppingList(BaseModel):
+    items : List
 
-class ShoppingList(BaseModel):
-    owner: str
-    items: List[ShoppingItem]
+class ShoppingListInput(BaseModel):
+    items: List[str]
 
 
 # Function to create JWT token
@@ -83,37 +82,26 @@ async def register_user(user: User):
 async def login_user(user: User):
     stored_user = await users_collection.find_one({"username": user.username})
     if not stored_user or not pwd_context.verify(user.password, stored_user["password"]):
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
+        return
+        # raise HTTPException(status_code=401, detail="Incorrect username or password")
+        
     
     # Generate JWT token
     access_token = create_access_token(user.username, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": access_token, "token_type": "bearer"}
 
 #Shopping list endpoint
-@app.post('/shopping_list/', response_model=ShoppingList)
-async def create_shopping_list(shopping_list: ShoppingList, current_user: str = Depends(get_current_user)):
-    # Set owner of shopping list
-    shopping_list.owner = current_user
+@app.post('/shopping_list/create')
+async def create_shopping_list(shopping_list: ShoppingListInput):
+    if shopping_list is None:
+        raise HTTPException(status_code=400, detail="Invalid shopping list data")
+    
+    items = shopping_list.items
+    
+    await shoppingLIst_collection.insert_one({"items": items})
+    
+    return {"message": "Shopping list created successfully"}
 
-    shopping_list_data = shopping_list.dict()
-    await shoppingLIst_collection.insert_one(shopping_list_data)
-
-    return shopping_list
-
-@app.get("/shopping_list/", response_model=List[ShoppingList])
-async def get_shopping_lists(current_user: str = Depends(get_current_user)):
-    shopping_lists = await shoppingLIst_collection.find({"owner": current_user}).to_list(length=100)
-    return shopping_lists
-
-@app.put("/shopping_list/{shopping_list_id}/", response_model=ShoppingList)
-async def update_shopping_list(shopping_list_id: str, shopping_list: ShoppingList, current_user: str = Depends(get_current_user)):
-    await shoppingLIst_collection.update_one({"_id": shopping_list_id, "owner": current_user}, {"$set": shopping_list.dict()})
-    return shopping_list
-
-@app.delete("/shopping_list/{shopping_list_id}/")
-async def delete_shopping_list(shopping_list_id: str, current_user: str = Depends(get_current_user)):
-    await shoppingLIst_collection.delete_one({"_id": shopping_list_id, "owner": current_user})
-    return {"message": "Shopping list deleted successfully"}
 
 # Logout endpoint
 @app.post("/logout/")

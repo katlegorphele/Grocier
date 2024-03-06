@@ -6,6 +6,18 @@ import asyncio
 from getpass import getpass
 from userreg import User, login_user
 
+items = {}
+
+def get_grocery_list():
+    items = []
+    while True:
+        item = input("Enter an item for your grocery list (or 'done' to finish): ")
+        if item.lower() == 'done':
+            break
+        items.append(item)
+    return items
+
+
 BASE_URL = "http://localhost:8000"
 
 def register(username, password):
@@ -28,10 +40,10 @@ async def login() -> str:
         return ""
 
 
-def create_shopping_list(token, items):
-    url = f"{BASE_URL}/shopping_list/"
+def create_shopping_list(token, items:list):
+    url = f"{BASE_URL}/shopping_list/create"
     headers = {"Authorization": f"Bearer {token}"}
-    data = {"items": items}
+    data = items
     response = requests.post(url, json=data, headers=headers)
     return response.json()
 
@@ -71,8 +83,8 @@ def main():
     elif args.command == "create":
         access_token = asyncio.run(login())
         if access_token:
-            items = input("Enter shopping items (comma separated): ").split(",")
-            shopping_list = {"items": [{"name": item.strip()} for item in items]}
+            items = get_grocery_list()
+            shopping_list = {"items": items}
             print(create_shopping_list(access_token, shopping_list))
         else:
             print("Login failed. Cannot create shopping list.")
