@@ -1,5 +1,7 @@
 from selenium import webdriver
-from selenium2 import search_pnp, search_checkers, search_woolworths  
+from siteparsers import search_pnp, search_checkers, search_woolworths  
+
+items = {}
 
 def get_grocery_list():
     items = []
@@ -28,6 +30,11 @@ def main():
         print(f'Checkers: {checkers_result}')
         print(f'Woolworths: {woolworths_result}')
         print()
+        items[item] = {
+            "pnp": pnp_result,
+            "checkers": checkers_result,
+            "woolworths": woolworths_result
+        }
 
     # Close the browser
     browser.quit()

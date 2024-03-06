@@ -2,7 +2,10 @@ from bs4 import BeautifulSoup
 
 
 def search_pnp(browser, item):
-    browser.get(f'https://www.pnp.co.za/search/{item}')
+    # check to see if item has spaces and replace with %20
+    item_url = item.replace(' ', '%20')
+
+    browser.get(f'https://www.pnp.co.za/search/{item_url}')
 
     # Get the HTML of the page
     html = browser.page_source
@@ -22,6 +25,7 @@ def search_pnp(browser, item):
 
 
 def search_checkers(browser, item):
+    item = item.replace(' ', '%20')
     browser.get(f'https://www.checkers.co.za/search/all?q={item}')
 
     # Get the HTML of the page
@@ -48,6 +52,7 @@ def search_checkers(browser, item):
 
 
 def search_woolworths(browser, item):
+    item = item.replace(' ', '%20')
     # Code to search Woolworths, parse the HTML, and return the product name and price
     browser.get(f'https://www.woolworths.co.za/cat?Ntt={item}&Dy=1')
 
