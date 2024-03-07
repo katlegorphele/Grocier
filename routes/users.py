@@ -43,6 +43,9 @@ async def register(user: UserCreate):
     '''
     Allows users to register
     '''
+    if users_collection.find_one({"username": user.username}):
+        raise HTTPException(status_code=400, detail="Username already registered")
+
     hashed_password = get_password_hash(user.password)
     result = users_collection.insert_one({"username":user.username,"email":user.email, "full_name": user.full_name, "hashed_password": hashed_password, "disbaled": False})
     return {"username": user.username, "email":user.email, "full_name":user.full_name}
