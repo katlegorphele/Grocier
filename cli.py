@@ -43,7 +43,7 @@ async def login() -> str:
 def create_shopping_list(token, items:list):
     url = f"{BASE_URL}/shopping_list/create"
     headers = {"Authorization": f"Bearer {token}"}
-    data = items
+    data = {"items" : items}
     response = requests.post(url, json=data, headers=headers)
     return response.json()
 

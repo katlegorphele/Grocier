@@ -92,13 +92,19 @@ async def login_user(user: User):
 
 #Shopping list endpoint
 @app.post('/shopping_list/create')
-async def create_shopping_list(shopping_list: ShoppingListInput):
+async def create_shopping_list(shopping_list: ShoppingListInput, current_user: str = Depends(get_current_user)):
     if shopping_list is None:
         raise HTTPException(status_code=400, detail="Invalid shopping list data")
     
+    # Get the user who is creating the shopping list
+    user = await users_collection.find_one({"username": current_user})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     items = shopping_list.items
     
-    await shoppingLIst_collection.insert_one({"items": items})
+    # Add the user_id to the shopping list document
+    await shoppingLIst_collection.insert_one({"user_id": user["_id"], "items": items})
     
     return {"message": "Shopping list created successfully"}
 
