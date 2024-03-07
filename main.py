@@ -15,6 +15,10 @@ from models.user import User
 from database.db import client, get_list_from_db
 from auth.auth import get_current_active_user
 from routes import users,lists
+import redis
+import json
+
+r = redis.Redis(host='localhost', port=6379, db=0)
 
 
 options = FirefoxOptions()
@@ -71,7 +75,16 @@ async def test_db_connection():
     except Exception as e:
         return {"message": "MongoDB connection failed", "error": str(e)}
     
-
+@app.get('/test_redis_connection', tags=['Utilities'])
+async def test_redis_connection():
+    '''
+    Utility function to test the redis connection
+    '''
+    try:
+        r.ping()
+        return {"message": "Redis connection successful"}
+    except Exception as e:
+        return {"message": "Redis connection failed", "error": str(e)}
 
 @app.get("/search/{list_id}",response_model=Dict[str, Dict[str, Optional[str]]], tags=["Search"])
 async def search_items(list_id:str, current_user: User = Depends(get_current_active_user)):
@@ -88,18 +101,25 @@ async def search_items(list_id:str, current_user: User = Depends(get_current_act
     
     results = {}
     for item in items:
+        # Try get item from redis
+        cached_result = r.get(item)
+        if cached_result is not None:
+            results[item] = json.loads(cached_result)
+            continue
+
+        # If the result is not in Redis, do the expensive operation
         pnp_results = siteparsers.search_pnp(browser, item)
         checkers_results = siteparsers.search_checkers(browser, item)
         woolies_results = siteparsers.search_woolworths(browser, item)
 
-        # pnp_price = extract_price(pnp_results)
-        # checkers_price = extract_price(checkers_results)
-        # woolies_price = extract_price(woolies_results)
 
         results[item] = {
             "pnp": pnp_results,
             "checkers": checkers_results,
             "woolies": woolies_results
         }
+
+        # Cache the result for one hour
+        r.set(item, json.dumps(results[item]), ex=3600)
 
     return results
