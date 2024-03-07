@@ -18,24 +18,89 @@ from routes import users,lists
 import redis
 import json
 
+#API Metadata
+description = """
+Grocier API helps you manage your shopping lists efficiently. 🚀
+
+## Shopping Lists
+
+You can **create**, **read**, **update**, and **delete** shopping lists.
+
+## Items
+
+You can **search** for items and get their prices from various stores. The results are cached in Redis for faster subsequent searches.
+
+## Users
+
+You will be able to:
+
+* **Register users**: New users can register by providing a username, email, and password.
+* **Authenticate users**: Users can log in by providing their username and password. They will receive a token that they can use for authenticated requests.
+* **Read users**: Get information about a user.
+* **Update users**: Update the information of a user.
+* **Delete users**: Delete a user from the system.
+
+## Utilities
+
+You can **test the database connection** and **test the Redis connection** to ensure that your system is working correctly.
+"""
+
+tags_metadata = [
+    {
+        "name": "Shopping Lists",
+        "description": "Operations with shopping lists. The whole list of items that you can manage.",
+    },
+    {
+        "name": "Items",
+        "description": "Manage items. You can search for items and get their prices from various stores.",
+    },
+    {
+        "name": "Users",
+        "description": "Manage users. You can register, authenticate, read, update, and delete users.",
+    },
+    {
+        "name": "Utilities",
+        "description": "Utilities. You can test the database connection and test the Redis connection.",
+    },
+]
+
+
+# Initialize Redis
 r = redis.Redis(host='localhost', port=6379, db=0)
 
 
-options = FirefoxOptions()
-options.add_argument('--headless')
+#Initialize Fastapi
+app = FastAPI(
+    name="Grocier",
+    description=description,
+    summary="Grocier API helps you manage your shopping lists efficiently",
+    version="1.0.0",
+    contact={
+        "name": "Katlego R Phele",
+        "url": "https://github.com/katlegorphele",
+        "email": "katlegophele95@gmail.com"
+    },
+    license_info={
+        "name":"MIT LICENSE",
+        "identifier":"MIT",
+    },
+)
 
-#Initialize Fastapi & Selenium
-app = FastAPI()
-# browser = webdriver.Firefox()
+#Include the routers
 app.include_router(users.router)
 app.include_router(lists.router)
 
+
+#Initialize a headless browser when the app starts
+options = FirefoxOptions()
+options.add_argument('--headless')
 
 @app.on_event('startup')
 async def startup_event():
     global browser
     browser = webdriver.Firefox(options=options)
 
+# Close browser on server shutdown
 @app.on_event('shutdown')
 async def shutdown_event():
     browser.quit()
@@ -45,22 +110,7 @@ async def read_root():
     '''
     Returns information about the application and its features
     '''
-    return {
-        "app": "Grocier",
-        "version": "1.0.0",
-        "features": {
-            "User Authentication": "Secure user authentication using OAuth2.",
-            "List Management": "Allows users to create and manage their shopping lists.",
-            "Item Search": "Searches for items in the user's shopping list across multiple sites (pnp, checkers, woolworths) and returns the prices.",
-        }
-    }
-
-def extract_price(price_str):
-    match = re.search(r'(\d+\.\d+)', price_str)
-    if match:
-        return float(match.group(1))
-    return None
-    
+    return {"info": description}
 
 
 @app.get("/test_db_connection", tags=['Utilities'])
@@ -123,3 +173,9 @@ async def search_items(list_id:str, current_user: User = Depends(get_current_act
         r.set(item, json.dumps(results[item]), ex=3600)
 
     return results
+
+def extract_price(price_str):
+    match = re.search(r'(\d+\.\d+)', price_str)
+    if match:
+        return float(match.group(1))
+    return None
