@@ -22,11 +22,11 @@ import json
 description = """
 Grocier API helps you manage your shopping lists efficiently. 🚀
 
-## Shopping Lists
+## Lists
 
 You can **create**, **read**, **update**, and **delete** shopping lists.
 
-## Items
+## Search
 
 You can **search** for items and get their prices from various stores. The results are cached in Redis for faster subsequent searches.
 
@@ -47,11 +47,11 @@ You can **test the database connection** and **test the Redis connection** to en
 
 tags_metadata = [
     {
-        "name": "Shopping Lists",
+        "name": "Lists",
         "description": "Operations with shopping lists. The whole list of items that you can manage.",
     },
     {
-        "name": "Items",
+        "name": "Search",
         "description": "Manage items. You can search for items and get their prices from various stores.",
     },
     {
@@ -73,7 +73,7 @@ r = redis.Redis(host='localhost', port=6379, db=0)
 app = FastAPI(
     name="Grocier",
     description=description,
-    summary="Grocier API helps you manage your shopping lists efficiently",
+    summary="Taking the stress out of grocery shopping",
     version="1.0.0",
     contact={
         "name": "Katlego R Phele",
@@ -84,6 +84,7 @@ app = FastAPI(
         "name":"MIT LICENSE",
         "identifier":"MIT",
     },
+    openapi_tags=tags_metadata
 )
 
 #Include the routers
@@ -110,7 +111,16 @@ async def read_root():
     '''
     Returns information about the application and its features
     '''
-    return {"info": description}
+    return {
+        "app": "Grocier",
+        "version": "1.0.0",
+        "features": {
+            "User Authentication": "Secure user authentication using OAuth2.",
+            "List Management": "Allows users to create and manage their shopping lists.",
+            "Item Search": "Searches for items in the user's shopping list across multiple sites (pnp, checkers, woolworths) and returns the prices.",
+        },
+        "special thanks":"A huge thank you to Busisiwe K Mokatse, without whom this program would not exist. Kealeboga motho waka"
+    }
 
 
 @app.get("/test_db_connection", tags=['Utilities'])
