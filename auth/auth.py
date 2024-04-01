@@ -6,10 +6,14 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from models.user import TokenData,User
 from database.db import get_user
+import os
+from dotenv import load_dotenv
 
-SECRET_KEY = "9519b88e04d4b9d5ebb24484918c580a035d246a05795e8be0e4c3c2c2692a26"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+load_dotenv()  # take environment variables from .env.
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
